@@ -99,7 +99,7 @@ def files_writer(jobs_lst, name):
     f_name = f'Данные по запросу - ({name}), (Количество - {str(len(jobs_lst))}), ' \
              f'на ({time.strftime("%d-%m-%y_%H-%M-%S")}).xlsx'
     directory = os.path.join('C:/Users/unlim/OneDrive/Рабочий стол/Вакансии')
-    # Если не использовать движок - xlsxwriter, то сслыки будут не кликабельны
+    # Если не использовать движок - xlsxwriter, то ссылки будут не кликабельны
     file = Xl(os.path.join(directory, f_name), engine='xlsxwriter')
     data_array = pd.DataFrame()
     columns = ['Название вакансии',
