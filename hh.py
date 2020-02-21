@@ -26,7 +26,9 @@ def parser(url, headers):
     session = requests.Session()
     request = session.get(url, headers=headers, timeout=5)
     if request.status_code == 200:
-        print(f'Сервер ответил со статусом {str(request.status_code)}!\nВсе ок!')
+        print(f'Сервер ответил со статусом {str(request.status_code)}!')
+        time.sleep(1)
+        print('Все ок!')
         soup = Bs(request.content, 'html.parser')
         # Находим ссылки пагинации
         try:
@@ -92,7 +94,7 @@ def parser(url, headers):
               f"\nЛибо используй VPN, либо попробуй позже")
 
 
-def files_writer(jobs_lst):
+def files_writer(jobs_lst, name):
     """Записываем все данные в файл Excel"""
     f_name = f'Данные по запросу - ({name}), (Количество - {str(len(jobs_lst))}), ' \
              f'на ({time.strftime("%d-%m-%y_%H-%M-%S")}).xlsx'
@@ -122,25 +124,23 @@ def files_writer(jobs_lst):
     print(f'Все, что спарсили, записали в файл с названием: {f_name}')
 
 
-def place():
+def place(name):
     """Место поиска вакансий"""
     where = str(input('Где ищем?: ')).upper()
     if where in destination:
         d = destination[where]
         url = f'https://hh.ru/search/vacancy?area={d}&st=searchVacancy&text={name}'
         jobs_lst = parser(url, headers)
-        return jobs_lst, files_writer(jobs_lst)
+        return jobs_lst, files_writer(jobs_lst, name)
     else:
         print(f'Я пока не знаю такого города \"{where}\"\nПопробуй ещё раз')
-        return place()
+        return place(name)
 
 
 def start_search():
     """Название вакансии"""
-    global name
     name = str(input('Название вакансии: '))
-    p = place()
-    return name, p
+    return place(name)
 
 
 start_search()
