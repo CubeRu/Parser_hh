@@ -63,7 +63,7 @@ def parser(url, headers):
                                           attrs={'data-qa': 'vacancy-serp__vacancy_snippet_responsibility'}).text
                 requirements = div.find('div',
                                         attrs={'data-qa': 'vacancy-serp__vacancy_snippet_requirement'}).text
-                salary = div.find('div',
+                salary = div.find('span',
                                   attrs={'data-qa': 'vacancy-serp__vacancy-compensation'})
                 # Если отсутствует з/п
                 try:
@@ -96,7 +96,7 @@ def parser(url, headers):
 
 def files_writer(jobs_lst, name):
     """Записываем все данные в файл Excel"""
-    f_name = f'Данные по запросу - ({name}), (Количество - {str(len(jobs_lst))}), ' \
+    f_name = f'Вакансии по запросу - ({name}), (Количество - {str(len(jobs_lst))}), ' \
              f'на ({time.strftime("%d-%m-%y_%H-%M-%S")}).xlsx'
     directory = os.path.join('C:/Users/unlim/OneDrive/Рабочий стол/Вакансии')
     # Если не использовать движок - xlsxwriter, то ссылки будут не кликабельны
@@ -110,13 +110,13 @@ def files_writer(jobs_lst, name):
                'З/П',
                'Ссылка на вакансию']
     for vacancy in jobs_lst:
-        data = {'Название вакансии': vacancy['title'],
-                'Компания': vacancy['company'],
-                'Описание': vacancy['responsibility'],
-                'Требования': vacancy['requirements'],
-                'Местоположение': vacancy['location'],
-                'З/П': vacancy['salary'],
-                'Ссылка на вакансию': vacancy['title_href']}
+        data = {columns[0]: vacancy['title'],
+                columns[1]: vacancy['company'],
+                columns[2]: vacancy['responsibility'],
+                columns[3]: vacancy['requirements'],
+                columns[4]: vacancy['location'],
+                columns[5]: vacancy['salary'],
+                columns[6]: vacancy['title_href']}
         data_array = data_array.append(pd.Series(data), ignore_index=True)
     data_array = data_array.reindex(columns=columns)
     data_array.to_excel(file, f'{time.strftime("%d-%m-%y_%H-%M-%S")}', index=False)
