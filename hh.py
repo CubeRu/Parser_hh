@@ -1,15 +1,13 @@
 import os
 import time
+import re
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup as Bs
 from pandas import ExcelWriter as Xl
 
-stop_vacancy = {'call', 'Call', 'колл', 'Колл', 'call-', 'Call-', 'колл-', 'Колл-',
-                'холодные звонки', 'звонить', 'по телефону', 'по продажам', 'продажа', 'продажи',
-                'по подбору персонала', 'продаж', 'телемаркетолог', 'Телемаркетолог',
-                'Оператор колл-центра', 'на телефоне', 'Менеджер по продажам', 'Upsell manager',
-                'по телемаркетингу', 'Специалист по телемаркетингу'}
+stop_vacancy = r'(\w(ll)\D|\w\D(ll)[^\']|\D\w(олл)\D|\D\w+(даж)|' \
+               r'\D\w+(фо)\w\D|\w(аркето)\w|\D(звон)\w\D|\w+\D(ктного)\D?)'
 
 headers = {'accept': '*/*',
            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit'
@@ -20,15 +18,13 @@ destination = {'НСК': 4,
 
 
 def parser(url, headers):
-    """Подключаемся, парсим и чистим данные"""
+    """Подключаемся, парсим, сортируем и чистим данные"""
     jobs_lst = []
     pagination_url = [url]
     session = requests.Session()
     request = session.get(url, headers=headers, timeout=5)
     if request.status_code == 200:
         print(f'Сервер ответил со статусом {str(request.status_code)}!')
-        time.sleep(1)
-        print('Все ок!')
         soup = Bs(request.content, 'html.parser')
         # Находим ссылки пагинации
         try:
@@ -81,22 +77,21 @@ def parser(url, headers):
                                  'requirements': requirements,
                                  'salary': salary,
                                  'title_href': title_href})
-        print(f"Найдено {str(len(jobs_lst))} вакансий!")
-        # Проходимся по полученным данным и удаляем не нужное
-        for x in stop_vacancy:
-            for item in jobs_lst:
-                if x in item['title']:
-                    jobs_lst.remove(item)
-        print(f'Удалили не нужное и получили {str(len(jobs_lst))} вакансий!')
-        return jobs_lst
+        # Сортируем данные по названию
+        sort_vacancy = sorted(jobs_lst, key=lambda x: x['title'])
+        print(f"Найдено {str(len(sort_vacancy))} вакансий!")
+        # Проходимся по отсортированным данным и избавляемся от ысякой шляпы
+        result = [x for x in sort_vacancy if not re.findall(stop_vacancy, x['title'])]
+        print(f'Удалили не нужное и получили {str(len(result))} вакансий!')
+        return result
     else:
         print(f"Сервер ответил со статусом {str(request.status_code)} :(\nНас палят Джек!"
               f"\nЛибо используй VPN, либо попробуй позже")
 
 
-def files_writer(jobs_lst, name):
+def files_writer(result, name):
     """Записываем все данные в файл Excel"""
-    f_name = f'Вакансии по запросу - ({name}), (Количество - {str(len(jobs_lst))}), ' \
+    f_name = f'Вакансии по запросу - ({name}), (Количество - {str(len(result))}), ' \
              f'на ({time.strftime("%d-%m-%y_%H-%M-%S")}).xlsx'
     directory = os.path.join('C:/Users/unlim/OneDrive/Рабочий стол/Вакансии')
     # Если не использовать движок - xlsxwriter, то ссылки будут не кликабельны
@@ -109,7 +104,7 @@ def files_writer(jobs_lst, name):
                'Местоположение',
                'З/П',
                'Ссылка на вакансию']
-    for vacancy in jobs_lst:
+    for vacancy in result:
         data = {columns[0]: vacancy['title'],
                 columns[1]: vacancy['company'],
                 columns[2]: vacancy['responsibility'],
