@@ -6,8 +6,8 @@ import requests
 from bs4 import BeautifulSoup as Bs
 from pandas import ExcelWriter as Xl
 
-stop_vacancy = r'(\w(ll)\D|\w\D(ll)[^\']|\D\w(олл)\D|\D\w+(даж)|' \
-               r'\D\w+(фо)\w\D|\w(аркето)\w|\D(звон)\w\D|\w+\D(ктного)\D?)'
+stop_vacancy = r'(\w+(лодн)\w+|\w+(влеч)\w+|\w\D(ll)[^\']|\w(олл)[^\']|\w*(даж)|\w+(ДАЖ)\w|\w+(елефо)\w|' \
+               r'\w+(аркет)\w+|(звон)\w+|\w+(ктно)\w[^\']|\w+(sell)|\w*(одящ)\w*|\w*(одав)\w*|\w*([s|S]ale)(\b|\w)[^f])'
 
 headers = {'accept': '*/*',
            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit'
@@ -78,20 +78,20 @@ def parser(url, headers):
                                  'salary': salary,
                                  'title_href': title_href})
         # Сортируем данные по названию
-        sort_vacancy = sorted(jobs_lst, key=lambda x: x['title'])
-        print(f"Найдено {str(len(sort_vacancy))} вакансий!")
-        # Проходимся по отсортированным данным и избавляемся от ысякой шляпы
-        result = [x for x in sort_vacancy if not re.findall(stop_vacancy, x['title'])]
-        print(f'Удалили не нужное и получили {str(len(result))} вакансий!')
-        return result
+        print(f"Найдено {str(len(jobs_lst))} вакансий!")
+        # Проходимся по отсортированным данным и избавляемся от всякой шляпы
+        remove_vacancy = [x for x in jobs_lst if not re.findall(stop_vacancy, x['title'])]
+        finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
+        print(f'Удалили не нужное и получили {str(len(finish_vacancy))} вакансий!')
+        return finish_vacancy
     else:
         print(f"Сервер ответил со статусом {str(request.status_code)} :(\nНас палят Джек!"
               f"\nЛибо используй VPN, либо попробуй позже")
 
 
-def files_writer(result, name):
+def files_writer(finish_vacancy, name):
     """Записываем все данные в файл Excel"""
-    f_name = f'Вакансии по запросу - ({name}), (Количество - {str(len(result))}), ' \
+    f_name = f'Вакансии по запросу - ({name}), (Количество - {str(len(finish_vacancy))}), ' \
              f'на ({time.strftime("%d-%m-%y_%H-%M-%S")}).xlsx'
     directory = os.path.join('C:/Users/unlim/OneDrive/Рабочий стол/Вакансии')
     # Если не использовать движок - xlsxwriter, то ссылки будут не кликабельны
@@ -104,7 +104,7 @@ def files_writer(result, name):
                'Местоположение',
                'З/П',
                'Ссылка на вакансию']
-    for vacancy in result:
+    for vacancy in finish_vacancy:
         data = {columns[0]: vacancy['title'],
                 columns[1]: vacancy['company'],
                 columns[2]: vacancy['responsibility'],
@@ -121,7 +121,7 @@ def files_writer(result, name):
 
 def place(name):
     """Место поиска вакансий"""
-    where = str(input('Где ищем?: ')).upper()
+    where = str(input('Где ищем (нск, рф)?: ')).upper()
     if where in destination:
         d = destination[where]
         url = f'https://hh.ru/search/vacancy?area={d}&st=searchVacancy&text={name}'
