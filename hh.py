@@ -76,10 +76,16 @@ def parser(url, headers):
                                  'title_href': title_href})
         # Сортируем данные по названию
         print(f"Найдено {str(len(jobs_lst))} вакансий!")
-        # Проходимся по отсортированным данным и избавляемся от всякой шляпы
-        remove_vacancy = [x for x in jobs_lst if not re.findall(stop_vacancy, x['title'])]
-        finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
-        print(f'Удалили не нужное и получили {str(len(finish_vacancy))} вакансий!')
+        # Чистим или не чистим данные от всякой шляпы
+        question = str(input('Будем избавляться от всякой шляпы (да/нет)?: '))
+        if question == 'да':
+            remove_vacancy = [x for x in jobs_lst if not re.findall(stop_vacancy, x['title'])]
+            finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
+            print(f'Удалили не нужное и получили {str(len(finish_vacancy))} вакансий!')
+        else:
+            remove_vacancy = jobs_lst
+            finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
+            print(f'Оставили все как есть и получили {str(len(finish_vacancy))} вакансий!')
         return finish_vacancy
     else:
         print(f"Сервер ответил со статусом {str(request.status_code)} :(\nНас палят Джек!"
