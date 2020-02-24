@@ -6,19 +6,16 @@ import requests
 from bs4 import BeautifulSoup as Bs
 from pandas import ExcelWriter as Xl
 
-stop_vacancy = r'(\w+(лодн)\w+|\w+(влеч)\w+|\w\D(ll)[^\']|\w(олл)[^\']|\w*(даж)|\w+(ДАЖ)\w|\w+(елефо)\w|' \
-               r'\w+(аркет)\w+|(звон)\w+|\w+(ктно)\w[^\']|\w+(sell)|\w*(одящ)\w*|\w*(одав)\w*|\w*([s|S]ale)(\b|\w)[^f])'
-
 headers = {'accept': '*/*',
            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit'
                          '/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
 
-destination = {'НСК': 4,
-               'РФ': 113}
-
 
 def parser(url, headers):
     """Подключаемся, парсим, сортируем и чистим данные"""
+    stop_vacancy = r'(\w+(лодн)\w+|\w+(влеч)\w+|\w\D(ll)[^\']|\w(олл)[^\']|\w*(даж)|\w+(ДАЖ)\w|\w+(елефо)\w|' \
+                   r'\w+(аркет)\w+|(звон)\w+|\w+(ктно)\w[^\']|\w+(sell)|\w*(одящ)\w*|\w*(одав)\w*|' \
+                   r'\w*([s|S]ale)(\b|\w)[^f])'
     jobs_lst = []
     pagination_url = [url]
     session = requests.Session()
@@ -121,7 +118,13 @@ def files_writer(finish_vacancy, name):
 
 def place(name):
     """Место поиска вакансий"""
-    where = str(input('Где ищем (нск, рф)?: ')).upper()
+    destination = {'НСК': 4,
+                   'МСК': 1,
+                   'СПБ': 2,
+                   'ЕКБ': 3,
+                   'РФ': 113,
+                   'БР': 16}
+    where = str(input(f'Где ищем ({str(", ".join([key for key in destination])).lower()})?: ')).upper()
     if where in destination:
         d = destination[where]
         url = f'https://hh.ru/search/vacancy?area={d}&st=searchVacancy&text={name}'
