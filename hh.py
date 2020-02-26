@@ -1,3 +1,4 @@
+import itertools
 import os
 import time
 import re
@@ -12,16 +13,18 @@ headers = {'accept': '*/*',
 
 
 def parser(url, headers):
-    """Подключаемся, парсим, сортируем и чистим данные"""
+    """Подключаемся, парсим, чистим и сортируем данные"""
     stop_vacancy = r'(\w+(лодн)\w+|\w+(влеч)\w+|\w\D(ll)[^\']|\w(олл)[^\']|\w*(даж)|\w+(ДАЖ)\w|\w+(елефо)\w|' \
                    r'\w+(аркет)\w+|(звон)\w+|\w+(ктно)\w[^\']|\w+(sell)|\w*(одящ)\w*|\w*(одав)\w*|' \
-                   r'\w*([s|S]ale)(\b|\w)[^f]||\w*([К|к][Л|л][И|и][Е|е])\W)'
+                   r'\w*([s|S]ale)(\b|\w)[^f]|\w*([К|к][Л|л][И|и][Е|е])\W)'
     jobs_lst = []
     pagination_url = [url]
     session = requests.Session()
     request = session.get(url, headers=headers, timeout=5)
     if request.status_code == 200:
-        print(f'Сервер ответил со статусом {str(request.status_code)}!')
+        print(f'Сервер ответил со статусом {str(request.status_code)}!', end='', flush=True)
+        time.sleep(.8)
+        print('\rПоиск вакансий', end='', flush=True)
         soup = Bs(request.content, 'html.parser')
         # Находим ссылки пагинации
         try:
@@ -74,15 +77,21 @@ def parser(url, headers):
                                  'requirements': requirements,
                                  'salary': salary,
                                  'title_href': title_href})
-        print(f"Найдено {str(len(jobs_lst))} вакансий!")
+            # Пока парсятся данные, отображаем псевдоанимацию в строке
+            while True:
+                for x in ['.'] * 3 + ['\b \b'] * 3:
+                    time.sleep(.3)
+                    print(x, end='', flush=True)
+                break
+        print(f"\rНайдено {str(len(jobs_lst))} вакансий!")
         # Чистим или не чистим данные от всякой шляпы
         question = str(input('Будем избавляться от всякой шляпы (да/нет)?: ')).upper()
         if question == 'ДА':
             remove_vacancy = [x for x in jobs_lst if not re.findall(stop_vacancy, x['title'])]
-            print(f'Удалили не нужное и получили {str(len(remove_vacancy))} вакансий!')
+            print(f'\rУдалили не нужное и получили {str(len(remove_vacancy))} вакансий!')
         else:
             remove_vacancy = jobs_lst
-            print(f'Оставили все как есть и получили {str(len(remove_vacancy))} вакансий!')
+            print(f'\rОставили все как есть и получили {str(len(remove_vacancy))} вакансий!')
         finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
         return finish_vacancy
     else:
