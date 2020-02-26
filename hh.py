@@ -15,7 +15,7 @@ def parser(url, headers):
     """Подключаемся, парсим, сортируем и чистим данные"""
     stop_vacancy = r'(\w+(лодн)\w+|\w+(влеч)\w+|\w\D(ll)[^\']|\w(олл)[^\']|\w*(даж)|\w+(ДАЖ)\w|\w+(елефо)\w|' \
                    r'\w+(аркет)\w+|(звон)\w+|\w+(ктно)\w[^\']|\w+(sell)|\w*(одящ)\w*|\w*(одав)\w*|' \
-                   r'\w*([s|S]ale)(\b|\w)[^f])'
+                   r'\w*([s|S]ale)(\b|\w)[^f]||\w*([К|к][Л|л][И|и][Е|е])\W)'
     jobs_lst = []
     pagination_url = [url]
     session = requests.Session()
@@ -74,18 +74,16 @@ def parser(url, headers):
                                  'requirements': requirements,
                                  'salary': salary,
                                  'title_href': title_href})
-        # Сортируем данные по названию
         print(f"Найдено {str(len(jobs_lst))} вакансий!")
         # Чистим или не чистим данные от всякой шляпы
-        question = str(input('Будем избавляться от всякой шляпы (да/нет)?: '))
-        if question == 'да':
+        question = str(input('Будем избавляться от всякой шляпы (да/нет)?: ')).upper()
+        if question == 'ДА':
             remove_vacancy = [x for x in jobs_lst if not re.findall(stop_vacancy, x['title'])]
-            finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
-            print(f'Удалили не нужное и получили {str(len(finish_vacancy))} вакансий!')
+            print(f'Удалили не нужное и получили {str(len(remove_vacancy))} вакансий!')
         else:
             remove_vacancy = jobs_lst
-            finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
-            print(f'Оставили все как есть и получили {str(len(finish_vacancy))} вакансий!')
+            print(f'Оставили все как есть и получили {str(len(remove_vacancy))} вакансий!')
+        finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
         return finish_vacancy
     else:
         print(f"Сервер ответил со статусом {str(request.status_code)} :(\nНас палят Джек!"
@@ -130,7 +128,7 @@ def place(name):
                    'ЕКБ': 3,
                    'РФ': 113,
                    'БР': 16}
-    where = str(input(f'Где ищем ({str(", ".join([key for key in destination])).lower()})?: ')).upper()
+    where = str(input(f'Где ищем ({", ".join([key for key in destination]).lower()})?: ')).upper()
     if where in destination:
         d = destination[where]
         url = f'https://hh.ru/search/vacancy?area={d}&st=searchVacancy&text={name}'
