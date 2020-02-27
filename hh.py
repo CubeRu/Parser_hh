@@ -40,6 +40,10 @@ def parser(url, headers):
             request = session.get(p_url, headers=headers, timeout=5)
             soup = Bs(request.content, 'html.parser')
             divs = soup.find_all('div', attrs={'data-qa': 'vacancy-serp__vacancy'})
+            # Пока парсятся данные, отображаем псевдоанимацию в строке
+            for x in ['.'] * 3 + ['\b \b'] * 3:
+                time.sleep(.3)
+                print(x, end='', flush=True)
             # Парсим данные с каждой страницы
             for div in divs:
                 title = div.find('a', attrs={'data-qa': 'vacancy-serp__vacancy-title'}).text
@@ -76,12 +80,6 @@ def parser(url, headers):
                                  'requirements': requirements,
                                  'salary': salary,
                                  'title_href': title_href})
-            # Пока парсятся данные, отображаем псевдоанимацию в строке
-            while True:
-                for x in ['.'] * 3 + ['\b \b'] * 3:
-                    time.sleep(.3)
-                    print(x, end='', flush=True)
-                break
         print(f"\rНайдено {str(len(jobs_lst))} вакансий!")
         # Чистим или не чистим данные от всякой шляпы
         question = str(input('Будем избавляться от всякой шляпы (да/нет)?: ')).upper()
@@ -91,7 +89,7 @@ def parser(url, headers):
         else:
             remove_vacancy = jobs_lst
             print(f'\rОставили все как есть и получили {str(len(remove_vacancy))} вакансий!')
-        finish_vacancy = sorted(remove_vacancy, key=lambda x: x['title'])
+        finish_vacancy = sorted(remove_vacancy, key=lambda a: a['title'])
         return finish_vacancy
     else:
         print(f"Сервер ответил со статусом {str(request.status_code)} :(\nНас палят Джек!"
@@ -149,7 +147,7 @@ def place(name):
 
 def start_search():
     """Название вакансии"""
-    name = str(input('Название вакансии: '))
+    name = input('Название вакансии: ')
     return place(name)
 
 
