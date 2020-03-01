@@ -32,7 +32,7 @@ def parser(url):
                 p_url = url + f'&page={i}'
                 if p_url not in pagination_url:
                     pagination_url.append(p_url)
-        except:
+        except TypeError:
             pass
         # Проходимся по списку страниц
         for p_url in pagination_url:
