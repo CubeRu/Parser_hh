@@ -6,13 +6,12 @@ import requests
 from bs4 import BeautifulSoup as Bs
 from pandas import ExcelWriter as Xl
 
-headers = {'accept': '*/*',
-           'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit'
-                         '/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
 
-
-def parser(url, headers):
+def parser(url):
     """Подключаемся, парсим, чистим и сортируем данные"""
+    headers = {'accept': '*/*',
+               'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit'
+                             '/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
     stop_vacancy = r'(\w+(лодн)\w+|\w+(влеч)\w+|\w\D(ll)[^\']|\w(олл)[^\']|\w*(даж)|\w+(ДАЖ)\w|\w+(елефо)\w|' \
                    r'\w+(аркет)\w+|(звон)\w+|\w+(ктно)\w[^\']|\w+(sell)|\w*(одящ)\w*|\w*(одав)\w*|' \
                    r'\w*([s|S]ale)(\b|\w)[^f]|\w*([К|к][Л|л][И|и][Е|е])\W)'
@@ -96,9 +95,9 @@ def parser(url, headers):
               f"\nЛибо используй VPN, либо попробуй позже")
 
 
-def files_writer(finish_vacancy, name):
+def files_writer(finish_vacancy, name, where):
     """Записываем все данные в файл Excel"""
-    f_name = f'Вакансии по запросу - ({name}), (Количество - {str(len(finish_vacancy))}), ' \
+    f_name = f'Вакансии по запросу - ({name}) в ({where}), (Количество - {str(len(finish_vacancy))}), ' \
              f'на ({time.strftime("%d-%m-%y_%H-%M-%S")}).xlsx'
     directory = os.path.join('C:/Users/unlim/OneDrive/Рабочий стол/Вакансии')
     # Если не использовать движок - xlsxwriter, то ссылки будут не кликабельны
@@ -132,14 +131,14 @@ def place(name):
                    'МСК': 1,
                    'СПБ': 2,
                    'ЕКБ': 3,
+                   'Н.О': 1202,
                    'РФ': 113,
                    'БР': 16}
-    where = str(input(f'Где ищем ({", ".join([key for key in destination]).lower()})?: ')).upper()
+    where = str(input(f'Где ищем ({", ".join([key for key in destination]).lower()})?: ')).upper().strip()
     if where in destination:
         d = destination[where]
         url = f'https://hh.ru/search/vacancy?area={d}&st=searchVacancy&text={name}'
-        jobs_lst = parser(url, headers)
-        return jobs_lst, files_writer(jobs_lst, name)
+        return url, files_writer(parser(url), name, where)
     else:
         print(f'Я пока не знаю такого города \"{where}\"\nПопробуй ещё раз')
         return place(name)
@@ -147,7 +146,7 @@ def place(name):
 
 def start_search():
     """Название вакансии"""
-    name = input('Название вакансии: ')
+    name = input('Название вакансии: ').strip()
     return place(name)
 
 
