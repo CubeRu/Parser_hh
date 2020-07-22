@@ -10,8 +10,9 @@ from pandas import ExcelWriter as Xl
 def parser(url):
     """Подключаемся, парсим, чистим и сортируем данные"""
     headers = {'accept': '*/*',
-               'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit'
-                             '/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
+               'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                         ' AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36'}
+    # Регулярное выражение, которое используется в качестве фильтра найденных вакансий
     stop_vacancy = r'(\w+(лодн)\w+|\w+(влеч)\w+|\w\D(ll)[^\']|\w(олл)[^\']|\w*(даж)|\w+(ДАЖ)\w|\w+(елефо)\w|' \
                    r'\w+(аркет)\w+|(звон)\w+|\w+(ктно)\w[^\']|\w+(sell)|\w*(одящ)\w*|\w*(одав)\w*|' \
                    r'\w*([s|S]ale)(\b|\w)[^f]|\w*([К|к][Л|л][И|и][Е|е])\W)'
@@ -23,8 +24,8 @@ def parser(url):
         print(f'Сервер ответил со статусом {str(request.status_code)}!', end='', flush=True)
         time.sleep(.8)
         print('\rПоиск вакансий', end='', flush=True)
-        soup = Bs(request.content, 'html.parser')
-        # Находим ссылки пагинации
+        soup = Bs(request.content, 'lxml')
+        # Находим ссылки на страницы в пагинации
         try:
             pagination = soup.find_all('a', attrs={'data-qa': 'pager-page'})
             count = int(pagination[-1].text)
@@ -34,22 +35,22 @@ def parser(url):
                     pagination_url.append(p_url)
         except TypeError:
             pass
-        # Проходимся по списку страниц
+        # Проходимся по списку страниц пагинации
         for p_url in pagination_url:
             request = session.get(p_url, headers=headers, timeout=5)
-            soup = Bs(request.content, 'html.parser')
+            soup = Bs(request.content, 'lxml')
             divs = soup.find_all('div', attrs={'data-qa': 'vacancy-serp__vacancy'})
             # Пока парсятся данные, отображаем псевдоанимацию в строке
             for x in ['.'] * 3 + ['\b \b'] * 3:
                 time.sleep(.3)
                 print(x, end='', flush=True)
-            # Парсим данные с каждой страницы
+            # Парсим данные с каждой страницы пагинации
             for div in divs:
                 title = div.find('a', attrs={'data-qa': 'vacancy-serp__vacancy-title'}).text
                 title_href = div.find('a', attrs={'data-qa': 'vacancy-serp__vacancy-title'})['href']
                 location = div.find('span', attrs={'data-qa': 'vacancy-serp__vacancy-address'}).text
                 company = div.find('a', attrs={'data-qa': 'vacancy-serp__vacancy-employer'})
-                # Если отсутствует название компании
+                # Если отсутствуют какаие-либо данные
                 try:
                     if company is not None:
                         company = company.text
@@ -59,11 +60,14 @@ def parser(url):
                     company = 'Компания не указана'
                 responsibility = div.find('div',
                                           attrs={'data-qa': 'vacancy-serp__vacancy_snippet_responsibility'}).text
+                if responsibility == '':
+                    responsibility = 'Отсутствует описание вакансии'
                 requirements = div.find('div',
                                         attrs={'data-qa': 'vacancy-serp__vacancy_snippet_requirement'}).text
+                if requirements == '':
+                    requirements = 'Отсутствует описание требований к вакансии'
                 salary = div.find('span',
                                   attrs={'data-qa': 'vacancy-serp__vacancy-compensation'})
-                # Если отсутствует з/п
                 try:
                     if salary is not None:
                         salary = salary.text
@@ -72,16 +76,16 @@ def parser(url):
                 except TypeError:
                     salary = 'З/П не указана'
                 # Добавляем в список полученные данные
-                jobs_lst.append({'title': title,
+                jobs_lst.append({'name': title,
                                  'location': location,
                                  'company': company,
                                  'responsibility': responsibility,
                                  'requirements': requirements,
                                  'salary': salary,
-                                 'title_href': title_href})
+                                 'name_href': title_href})
         print(f"\rНайдено {str(len(jobs_lst))} вакансий!")
-        # Чистим или не чистим данные от всякой шляпы
-        question = str(input('Будем избавляться от всякой шляпы (да/нет)?: ')).upper()
+        # Фильтрация полученного списка по регулярному выражению
+        question = str(input('Будем фильтровать данные (да/нет)?: ')).strip().upper()
         if question == 'ДА':
             remove_vacancy = [x for x in jobs_lst if not re.findall(stop_vacancy, x['title'])]
             print(f'\rУдалили не нужное и получили {str(len(remove_vacancy))} вакансий!')
@@ -91,8 +95,8 @@ def parser(url):
         finish_vacancy = sorted(remove_vacancy, key=lambda a: a['title'])
         return finish_vacancy
     else:
-        print(f"Сервер ответил со статусом {str(request.status_code)} :(\nНас палят Джек!"
-              f"\nЛибо используй VPN, либо попробуй позже")
+        print(f"Сервер ответил со статусом {str(request.status_code)} :(\nЧто-то пошло не так!"
+              f"\nПопробуйте позже")
 
 
 def files_writer(finish_vacancy, name, where):
@@ -111,18 +115,18 @@ def files_writer(finish_vacancy, name, where):
                'З/П',
                'Ссылка на вакансию']
     for vacancy in finish_vacancy:
-        data = {columns[0]: vacancy['title'],
+        data = {columns[0]: vacancy['name'],
                 columns[1]: vacancy['company'],
                 columns[2]: vacancy['responsibility'],
                 columns[3]: vacancy['requirements'],
                 columns[4]: vacancy['location'],
                 columns[5]: vacancy['salary'],
-                columns[6]: vacancy['title_href']}
+                columns[6]: vacancy['name_href']}
         data_array = data_array.append(pd.Series(data), ignore_index=True)
     data_array = data_array.reindex(columns=columns)
     data_array.to_excel(file, f'{time.strftime("%d-%m-%y_%H-%M-%S")}', index=False)
     file.save()
-    print(f'Все, что спарсили, записали в файл с названием: {f_name}')
+    print(f'Все, что собрали, записали в файл с названием: {f_name}')
 
 
 def place(name):
